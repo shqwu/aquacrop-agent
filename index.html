@@ -1,46 +1,333 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>AquaCrop AI Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>AquaCrop Agent Demo</title>
   <style>
-    body { font-family: sans-serif; max-width: 900px; margin: 40px auto; }
-    textarea { width: 100%; height: 120px; }
-    pre { background: #f5f5f5; padding: 12px; overflow:auto; }
-    button { padding: 10px 14px; margin-top: 10px; }
+    :root { --bg:#0b1020; --card:#121a33; --text:#e8ecff; --muted:#aab3d6; --border:#253055; --accent:#6ea8fe; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background: linear-gradient(180deg,#070b16,#0b1020); color: var(--text); }
+    .wrap { max-width: 980px; margin: 32px auto; padding: 0 16px; }
+    .hero { display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+    h1 { margin:0 0 6px 0; font-size: 28px; letter-spacing: 0.2px; }
+    .subtitle { margin:0; color: var(--muted); line-height: 1.4; }
+    .badge { display:inline-block; padding:6px 10px; border:1px solid var(--border); border-radius:999px; color: var(--muted); font-size: 12px; }
+    .grid { display:grid; grid-template-columns: 1fr; gap: 14px; margin-top: 18px; }
+    @media (min-width: 900px){ .grid { grid-template-columns: 1.1fr 0.9fr; } }
+    .card { background: rgba(18,26,51,0.92); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
+    .card h2 { margin:0 0 10px 0; font-size: 16px; color: #d9e1ff; }
+    textarea { width: 100%; height: 140px; resize: vertical; border-radius: 12px; border: 1px solid var(--border); background: #0e1530; color: var(--text); padding: 12px; font-size: 14px; line-height: 1.35; outline: none; }
+    textarea:focus { border-color: rgba(110,168,254,0.7); box-shadow: 0 0 0 3px rgba(110,168,254,0.15); }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+    button { cursor:pointer; border:0; border-radius: 12px; padding: 10px 14px; font-weight: 600; background: var(--accent); color: #081027; }
+    button:disabled { opacity: 0.6; cursor:not-allowed; }
+    .smallbtn { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .status { color: var(--muted); font-size: 13px; }
+    .pill { display:inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
+    .pill.ok { background: rgba(77, 242, 167, 0.08); color: #7ff2c8; }
+    .pill.ask { background: rgba(255, 208, 115, 0.08); color: #ffd073; }
+    .pill.err { background: rgba(255, 120, 120, 0.08); color: #ff9a9a; }
+    .box { border: 1px dashed rgba(170,179,214,0.35); border-radius: 12px; padding: 10px; color: var(--muted); background: rgba(10,15,35,0.5); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align:left; padding: 8px 8px; border-bottom: 1px solid rgba(37,48,85,0.75); vertical-align: top; }
+    th { font-size: 12px; color: var(--muted); font-weight: 600; }
+    td { font-size: 13px; }
+    code { background: rgba(110,168,254,0.12); padding: 2px 6px; border-radius: 8px; }
+    details { margin-top: 10px; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0c1228; border: 1px solid var(--border); border-radius: 12px; padding: 10px; overflow:auto; max-height: 340px; color: #d6dcff; }
+    img { width: 100%; border-radius: 14px; border: 1px solid var(--border); background: #0c1228; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
+    .footer { margin: 18px 0 40px 0; color: var(--muted); font-size: 12px; }
+    a { color: #a9c8ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
+
 <body>
-  <h1>AquaCrop AI Demo</h1>
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>AquaCrop Agent Demo</h1>
+        <p class="subtitle">
+          A lightweight web demo: prompt → FastAPI backend → AquaCrop run → JSON + summary table + irrigation plot.
+        </p>
+        <div class="hint">
+          Notes: This demo currently supports <b>corn (maize) only</b>. Location can be county GEOID, county+state, or lat/lon.
+          Dates without a year default to the current year unless you specify a year.
+        </div>
+      </div>
+      <div class="badge">Backend: <code id="backendTag"></code></div>
+    </div>
 
-  <p>Prompt:</p>
-  <textarea id="prompt">Run maize in Mitchell County, GA, planted January 5 2026, irrigated</textarea>
-  <br/>
-  <button id="runBtn">Run</button>
+    <div class="grid">
+      <!-- Left: Input -->
+      <div class="card">
+        <h2>1) Prompt</h2>
+        <textarea id="prompt"></textarea>
 
-  <h3>Result</h3>
-  <pre id="out">(waiting...)</pre>
+        <div class="row">
+          <button id="runBtn">Run</button>
+          <button id="resetBtn" class="smallbtn">Reset</button>
+          <span class="status" id="statusText">Ready.</span>
+          <span class="pill" id="pill" style="display:none;"></span>
+        </div>
+
+        <div class="hint">
+          Example prompts:
+          <ul>
+            <li><code>Run maize in Mitchell County, GA, planted January 5 2026, irrigated</code></li>
+            <li><code>31.213 -84.216 irrigated, planting Jan 5, year 2026</code></li>
+            <li><code>Mitchell County GA, current date Feb 28, MAD 45%</code></li>
+            <li><code>GEOID 13205 rainfed planting 1/10</code> (if ambiguous, the agent will ask)</li>
+          </ul>
+        </div>
+
+        <div class="box" id="askBox" style="display:none;">
+          <b>Need more info:</b>
+          <div id="askText" style="margin-top:6px;"></div>
+          <div class="hint">
+            Tip: the backend is currently stateless. If you answer a clarification, you can paste a clear follow-up prompt, e.g.
+            <code>Planting date: January 10, 2026</code> or <code>Option 1</code>.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Output -->
+      <div class="card">
+        <h2>2) Output</h2>
+
+        <div id="summaryWrap" style="display:none;">
+          <h2 style="margin-top:2px;">Summary</h2>
+          <div id="summaryTable"></div>
+        </div>
+
+        <div id="plotWrap" style="display:none; margin-top:12px;">
+          <h2 style="margin-top:0;">Irrigation demand (mm)</h2>
+          <img id="plotImg" alt="Irrigation plot" />
+          <div class="hint">This plot is returned by the backend as base64 PNG.</div>
+        </div>
+
+        <div id="seriesWrap" style="display:none; margin-top:12px;">
+          <h2 style="margin-top:0;">Irrigation series preview</h2>
+          <div id="seriesTable"></div>
+          <div class="hint">Showing first 20 rows (date, irrigation_mm).</div>
+        </div>
+
+        <details id="rawWrap" style="display:none;">
+          <summary style="cursor:pointer; color: var(--muted);">Raw JSON</summary>
+          <pre id="rawJson"></pre>
+        </details>
+
+        <div id="errBox" class="box" style="display:none; border-style: solid; border-color: rgba(255,154,154,0.35); color:#ffb3b3;"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Frontend hosted on GitHub Pages. Backend hosted privately. If you see a CORS error, the backend must allow origin <code>https://shqwu.github.io</code>.
+    </div>
+  </div>
 
   <script>
     const BACKEND_BASE = "https://aquacrop-backend-private.onrender.com";
+    document.getElementById("backendTag").textContent = BACKEND_BASE;
 
-    document.getElementById("runBtn").addEventListener("click", async () => {
-      const prompt = document.getElementById("prompt").value.trim();
-      const out = document.getElementById("out");
-      out.textContent = "Running... (Render may cold-start)";
+    const promptEl = document.getElementById("prompt");
+    const runBtn = document.getElementById("runBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusText = document.getElementById("statusText");
+    const pill = document.getElementById("pill");
+
+    const askBox = document.getElementById("askBox");
+    const askText = document.getElementById("askText");
+    const errBox = document.getElementById("errBox");
+
+    const summaryWrap = document.getElementById("summaryWrap");
+    const summaryTable = document.getElementById("summaryTable");
+
+    const plotWrap = document.getElementById("plotWrap");
+    const plotImg = document.getElementById("plotImg");
+
+    const seriesWrap = document.getElementById("seriesWrap");
+    const seriesTable = document.getElementById("seriesTable");
+
+    const rawWrap = document.getElementById("rawWrap");
+    const rawJson = document.getElementById("rawJson");
+
+    promptEl.value = "Run maize in Mitchell County, GA, planted January 5 2026, irrigated";
+
+    function setPill(type, text){
+      pill.style.display = "inline-block";
+      pill.className = "pill " + type;
+      pill.textContent = text;
+    }
+
+    function clearOutputs(){
+      askBox.style.display = "none";
+      errBox.style.display = "none";
+
+      summaryWrap.style.display = "none";
+      plotWrap.style.display = "none";
+      seriesWrap.style.display = "none";
+      rawWrap.style.display = "none";
+
+      summaryTable.innerHTML = "";
+      seriesTable.innerHTML = "";
+      rawJson.textContent = "";
+      plotImg.src = "";
+    }
+
+    function buildKeyValueTable(rows){
+      // rows: [{Field:"", Value:""}, ...]
+      const t = document.createElement("table");
+      const thead = document.createElement("thead");
+      thead.innerHTML = "<tr><th style='width:45%'>Field</th><th>Value</th></tr>";
+      t.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      rows.forEach(r => {
+        const tr = document.createElement("tr");
+        const td1 = document.createElement("td");
+        const td2 = document.createElement("td");
+        td1.textContent = r.Field ?? "";
+        td2.textContent = (r.Value ?? "").toString();
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tbody.appendChild(tr);
+      });
+      t.appendChild(tbody);
+      return t;
+    }
+
+    function buildSeriesTable(rows){
+      // rows: [{date:"2026-..", irrigation_mm:..}, ...]
+      const t = document.createElement("table");
+      const thead = document.createElement("thead");
+      thead.innerHTML = "<tr><th style='width:55%'>Date</th><th>Irrigation (mm)</th></tr>";
+      t.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      rows.slice(0, 20).forEach(r => {
+        const tr = document.createElement("tr");
+        const td1 = document.createElement("td");
+        const td2 = document.createElement("td");
+        td1.textContent = r.date ?? "";
+        td2.textContent = (r.irrigation_mm ?? "").toString();
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tbody.appendChild(tr);
+      });
+      t.appendChild(tbody);
+      return t;
+    }
+
+    async function wakeBackend(){
+      try {
+        await fetch(`${BACKEND_BASE}/health`, { method: "GET" });
+      } catch (e) {
+        // ignore; we handle errors in the main request
+      }
+    }
+
+    async function run(){
+      const prompt = promptEl.value.trim();
+      if (!prompt){
+        statusText.textContent = "Please enter a prompt.";
+        return;
+      }
+
+      clearOutputs();
+      runBtn.disabled = true;
+      statusText.textContent = "Waking backend (if needed)...";
+      setPill("ask", "running");
+
+      await wakeBackend();
+
+      statusText.textContent = "Running... (Render may cold-start)";
+      const payload = { prompt };
 
       try {
         const resp = await fetch(`${BACKEND_BASE}/run`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt })
+          body: JSON.stringify(payload)
         });
 
-        const data = await resp.json();
-        out.textContent = JSON.stringify(data, null, 2);
+        const text = await resp.text();
+        let data = null;
+
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          // non-JSON response
+          errBox.style.display = "block";
+          errBox.innerHTML = "<b>Non-JSON response from server</b><br/><br/>" +
+                             "<pre style='max-height:220px;'>" + text.replaceAll("<","&lt;") + "</pre>";
+          setPill("err", "error");
+          statusText.textContent = `Server returned HTTP ${resp.status}.`;
+          return;
+        }
+
+        // Show raw JSON
+        rawWrap.style.display = "block";
+        rawJson.textContent = JSON.stringify(data, null, 2);
+
+        if (!resp.ok || data.status === "error"){
+          errBox.style.display = "block";
+          const msg = data.error ? data.error : `HTTP ${resp.status}`;
+          errBox.innerHTML = "<b>Error</b><br/><br/>" + msg +
+                             (data.traceback ? "<details style='margin-top:8px;'><summary>Traceback</summary><pre>" +
+                              data.traceback.replaceAll("<","&lt;") + "</pre></details>" : "");
+          setPill("err", "error");
+          statusText.textContent = "Error from backend.";
+          return;
+        }
+
+        if (data.status === "need_more_info"){
+          askBox.style.display = "block";
+          askText.textContent = data.question || "I need more information.";
+          setPill("ask", "need_more_info");
+          statusText.textContent = "Waiting for clarification.";
+          return;
+        }
+
+        // OK
+        setPill("ok", "ok");
+        statusText.textContent = "Done.";
+
+        // Summary table
+        if (Array.isArray(data.summary_table) && data.summary_table.length > 0){
+          summaryWrap.style.display = "block";
+          summaryTable.appendChild(buildKeyValueTable(data.summary_table));
+        }
+
+        // Plot
+        if (data.irrigation_plot_png_base64){
+          plotWrap.style.display = "block";
+          plotImg.src = "data:image/png;base64," + data.irrigation_plot_png_base64;
+        }
+
+        // Series
+        if (Array.isArray(data.irrigation_series) && data.irrigation_series.length > 0){
+          seriesWrap.style.display = "block";
+          seriesTable.appendChild(buildSeriesTable(data.irrigation_series));
+        }
+
       } catch (e) {
-        out.textContent = "Error: " + (e?.message || String(e));
+        errBox.style.display = "block";
+        errBox.innerHTML = "<b>Request failed</b><br/><br/>" + (e?.message || String(e));
+        setPill("err", "error");
+        statusText.textContent = "Network/request error.";
+      } finally {
+        runBtn.disabled = false;
       }
+    }
+
+    runBtn.addEventListener("click", run);
+    resetBtn.addEventListener("click", () => {
+      promptEl.value = "Run maize in Mitchell County, GA, planted January 5 2026, irrigated";
+      clearOutputs();
+      statusText.textContent = "Ready.";
+      pill.style.display = "none";
     });
   </script>
 </body>
