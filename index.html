@@ -16,7 +16,7 @@
     @media (min-width: 900px){ .grid { grid-template-columns: 1.1fr 0.9fr; } }
     .card { background: rgba(18,26,51,0.92); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
     .card h2 { margin:0 0 10px 0; font-size: 16px; color: #d9e1ff; }
-    textarea { width: 100%; height: 140px; resize: vertical; border-radius: 12px; border: 1px solid var(--border); background: #0e1530; color: var(--text); padding: 12px; font-size: 14px; line-height: 1.35; outline: none; }
+    textarea { width: 100%; height: 150px; resize: vertical; border-radius: 12px; border: 1px solid var(--border); background: #0e1530; color: var(--text); padding: 12px; font-size: 14px; line-height: 1.35; outline: none; }
     textarea:focus { border-color: rgba(110,168,254,0.7); box-shadow: 0 0 0 3px rgba(110,168,254,0.15); }
     .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
     button { cursor:pointer; border:0; border-radius: 12px; padding: 10px 14px; font-weight: 600; background: var(--accent); color: #081027; }
@@ -38,8 +38,6 @@
     img { width: 100%; border-radius: 14px; border: 1px solid var(--border); background: #0c1228; }
     .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
     .footer { margin: 18px 0 40px 0; color: var(--muted); font-size: 12px; }
-    a { color: #a9c8ff; text-decoration: none; }
-    a:hover { text-decoration: underline; }
   </style>
 </head>
 
@@ -49,20 +47,31 @@
       <div>
         <h1>AquaCrop Agent Demo</h1>
         <p class="subtitle">
-          A lightweight web demo: prompt → FastAPI backend → AquaCrop run → JSON + summary table + irrigation plot.
+          Prompt → FastAPI backend → AquaCrop run → JSON + summary table + irrigation plot.
         </p>
-        <div class="hint">
-          Notes: This demo currently supports <b>corn (maize) only</b>. Location can be county GEOID, county+state, or lat/lon.
-          Dates without a year default to the current year unless you specify a year.
-        </div>
       </div>
       <div class="badge">Backend: <code id="backendTag"></code></div>
     </div>
 
     <div class="grid">
-      <!-- Left: Input -->
+      <!-- Left -->
       <div class="card">
         <h2>1) Prompt</h2>
+
+        <!-- Always-visible rules -->
+        <div class="box" style="margin:10px 0 10px 0;">
+          <b>Rules for this demo (always visible)</b>
+          <ul style="margin:8px 0 0 18px; line-height:1.45;">
+            <li><b>Crop</b>: corn (maize) only.</li>
+            <li><b>Location</b>: 5-digit county GEOID, or county + state, or latitude/longitude.</li>
+            <li><b>Planting date</b>: optional; default county planting date is used if omitted.</li>
+            <li><b>Year</b>: optional; if you provide dates without a year, the demo assumes the current year unless you specify a year.</li>
+            <li><b>Current date</b>: the start date for the <b>next 14-day irrigation demand window</b>. If omitted, it defaults to the local date at the simulation location (only for the current year). For a past year, you must provide a current date in that year.</li>
+            <li><b>Forecast limit</b>: current date cannot be in the future (we need the next 14 days from that date). Past dates are simulated using historical weather (archive).</li>
+            <li><b>MAD</b> (Maximum Allowable Depletion, %): optional; default is 50%.</li>
+          </ul>
+        </div>
+
         <textarea id="prompt"></textarea>
 
         <div class="row">
@@ -76,9 +85,8 @@
           Example prompts:
           <ul>
             <li><code>Run maize in Mitchell County, GA, planted January 5 2026, irrigated</code></li>
-            <li><code>31.213 -84.216 irrigated, planting Jan 5, year 2026</code></li>
-            <li><code>Mitchell County GA, current date Feb 28, MAD 45%</code></li>
-            <li><code>GEOID 13205 rainfed planting 1/10</code> (if ambiguous, the agent will ask)</li>
+            <li><code>GEOID 13205 rainfed, year 2025, current date March 1 2025</code></li>
+            <li><code>31.213 -84.216 irrigated, planting Jan 5 2026, MAD 45%</code></li>
           </ul>
         </div>
 
@@ -86,13 +94,12 @@
           <b>Need more info:</b>
           <div id="askText" style="margin-top:6px;"></div>
           <div class="hint">
-            Tip: the backend is currently stateless. If you answer a clarification, you can paste a clear follow-up prompt, e.g.
-            <code>Planting date: January 10, 2026</code> or <code>Option 1</code>.
+            Tip: the backend is stateless. If it asks a clarification, paste a follow-up prompt with a clear answer (e.g., “current date 2025-03-01”).
           </div>
         </div>
       </div>
 
-      <!-- Right: Output -->
+      <!-- Right -->
       <div class="card">
         <h2>2) Output</h2>
 
@@ -104,13 +111,12 @@
         <div id="plotWrap" style="display:none; margin-top:12px;">
           <h2 style="margin-top:0;">Irrigation demand (mm)</h2>
           <img id="plotImg" alt="Irrigation plot" />
-          <div class="hint">This plot is returned by the backend as base64 PNG.</div>
         </div>
 
         <div id="seriesWrap" style="display:none; margin-top:12px;">
           <h2 style="margin-top:0;">Irrigation series preview</h2>
           <div id="seriesTable"></div>
-          <div class="hint">Showing first 20 rows (date, irrigation_mm).</div>
+          <div class="hint">Showing first 20 rows.</div>
         </div>
 
         <details id="rawWrap" style="display:none;">
@@ -123,7 +129,7 @@
     </div>
 
     <div class="footer">
-      Frontend hosted on GitHub Pages. Backend hosted privately. If you see a CORS error, the backend must allow origin <code>https://shqwu.github.io</code>.
+      If you see a CORS error, the backend must allow origin <code>https://shqwu.github.io</code>.
     </div>
   </div>
 
@@ -164,12 +170,10 @@
     function clearOutputs(){
       askBox.style.display = "none";
       errBox.style.display = "none";
-
       summaryWrap.style.display = "none";
       plotWrap.style.display = "none";
       seriesWrap.style.display = "none";
       rawWrap.style.display = "none";
-
       summaryTable.innerHTML = "";
       seriesTable.innerHTML = "";
       rawJson.textContent = "";
@@ -177,12 +181,10 @@
     }
 
     function buildKeyValueTable(rows){
-      // rows: [{Field:"", Value:""}, ...]
       const t = document.createElement("table");
       const thead = document.createElement("thead");
       thead.innerHTML = "<tr><th style='width:45%'>Field</th><th>Value</th></tr>";
       t.appendChild(thead);
-
       const tbody = document.createElement("tbody");
       rows.forEach(r => {
         const tr = document.createElement("tr");
@@ -199,12 +201,10 @@
     }
 
     function buildSeriesTable(rows){
-      // rows: [{date:"2026-..", irrigation_mm:..}, ...]
       const t = document.createElement("table");
       const thead = document.createElement("thead");
       thead.innerHTML = "<tr><th style='width:55%'>Date</th><th>Irrigation (mm)</th></tr>";
       t.appendChild(thead);
-
       const tbody = document.createElement("tbody");
       rows.slice(0, 20).forEach(r => {
         const tr = document.createElement("tr");
@@ -221,11 +221,7 @@
     }
 
     async function wakeBackend(){
-      try {
-        await fetch(`${BACKEND_BASE}/health`, { method: "GET" });
-      } catch (e) {
-        // ignore; we handle errors in the main request
-      }
+      try { await fetch(`${BACKEND_BASE}/health`, { method: "GET" }); } catch (e) {}
     }
 
     async function run(){
@@ -255,19 +251,15 @@
         const text = await resp.text();
         let data = null;
 
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          // non-JSON response
+        try { data = JSON.parse(text); }
+        catch (e) {
           errBox.style.display = "block";
-          errBox.innerHTML = "<b>Non-JSON response from server</b><br/><br/>" +
-                             "<pre style='max-height:220px;'>" + text.replaceAll("<","&lt;") + "</pre>";
+          errBox.innerHTML = "<b>Non-JSON response</b><br/><pre style='max-height:220px;'>" + text.replaceAll("<","&lt;") + "</pre>";
           setPill("err", "error");
-          statusText.textContent = `Server returned HTTP ${resp.status}.`;
+          statusText.textContent = `HTTP ${resp.status}.`;
           return;
         }
 
-        // Show raw JSON
         rawWrap.style.display = "block";
         rawJson.textContent = JSON.stringify(data, null, 2);
 
@@ -290,23 +282,19 @@
           return;
         }
 
-        // OK
         setPill("ok", "ok");
         statusText.textContent = "Done.";
 
-        // Summary table
         if (Array.isArray(data.summary_table) && data.summary_table.length > 0){
           summaryWrap.style.display = "block";
           summaryTable.appendChild(buildKeyValueTable(data.summary_table));
         }
 
-        // Plot
         if (data.irrigation_plot_png_base64){
           plotWrap.style.display = "block";
           plotImg.src = "data:image/png;base64," + data.irrigation_plot_png_base64;
         }
 
-        // Series
         if (Array.isArray(data.irrigation_series) && data.irrigation_series.length > 0){
           seriesWrap.style.display = "block";
           seriesTable.appendChild(buildSeriesTable(data.irrigation_series));
