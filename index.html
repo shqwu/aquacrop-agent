@@ -40,8 +40,8 @@
 
       background: url("./assets/bg.jpg") center/cover no-repeat;
 
-      opacity: 0.8;                     /* ✅ 更明显 */
-      filter: saturate(1.10) contrast(1.08) blur(0px);  /* ✅ 不模糊 */
+      opacity: 0.8;
+      filter: saturate(1.10) contrast(1.08) blur(0px);
     }
     body::after{
       content:"";
@@ -50,9 +50,7 @@
       z-index: -1;
 
       background:
-        /* ✅ 白雾：保证可读性，但别太厚 */
         linear-gradient(180deg, rgba(246,249,255,0.65), rgba(248,251,255,0.5)),
-        /* ✅ 轻 tech 光晕 */
         radial-gradient(900px 500px at 15% 10%, rgba(6,182,212,0.12), transparent 60%),
         radial-gradient(900px 500px at 85% 20%, rgba(37,99,235,0.12), transparent 55%);
     }
@@ -353,6 +351,7 @@
 
     const STORAGE_KEY = "aquacrop_agent_messages_chat_v2";
 
+    // Local fallback instructions (will be replaced by backend /welcome on GitHub Pages)
     const STARTER_ASSISTANT = [
       "Hi! I can help you simulate irrigation demand from a **current date** to the next **14 days** (corn/maize only).",
       "",
@@ -431,6 +430,37 @@
     async function wakeBackend(){
       if (!ENABLE_BACKEND) return;
       try { await fetch(`${BACKEND_BASE}/health`, { method: "GET" }); } catch (e) {}
+    }
+
+    // NEW: Load welcome message from backend on page load (no /run, no LLM)
+    async function loadWelcomeFromBackend(){
+      if (!ENABLE_BACKEND) return;
+
+      // Only replace when conversation is empty or only has the local starter
+      const onlyStarter =
+        Array.isArray(messages) &&
+        messages.length === 1 &&
+        messages[0]?.role === "assistant" &&
+        (messages[0]?.content || "").trim() === STARTER_ASSISTANT.trim();
+
+      const isEmpty = !messages || messages.length === 0;
+
+      if (!isEmpty && !onlyStarter) return;
+
+      try {
+        const resp = await fetch(`${BACKEND_BASE}/welcome`, { method: "GET" });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data && data.assistant_message){
+          messages = [{ role: "assistant", content: data.assistant_message }];
+          saveMessages();
+          renderMessages();
+          pill.style.display = "none";
+          statusText.textContent = "Ready.";
+        }
+      } catch (e) {
+        // Keep local starter silently if backend welcome fails
+      }
     }
 
     async function send(){
@@ -551,6 +581,8 @@
       clearResultCards();
       pill.style.display = "none";
       statusText.textContent = "Cleared.";
+      // Try again to load backend welcome after clearing (GitHub Pages)
+      loadWelcomeFromBackend();
     });
 
     // init
@@ -560,6 +592,9 @@
       saveMessages();
     }
     renderMessages();
+
+    // Replace local starter with backend welcome on GitHub Pages (no /run, no LLM)
+    loadWelcomeFromBackend();
 
     if (!ENABLE_BACKEND){
       statusText.textContent = "Local preview mode: backend calls are disabled.";
