@@ -28,8 +28,7 @@
     .pill.ask { background: rgba(255, 208, 115, 0.08); color: #ffd073; }
     .pill.err { background: rgba(255, 120, 120, 0.08); color: #ff9a9a; }
 
-    /* Chat */
-    .chat { height: 520px; overflow:auto; padding: 10px; border: 1px solid var(--border); border-radius: 14px; background: rgba(12,18,40,0.6); }
+    .chat { height: 560px; overflow:auto; padding: 10px; border: 1px solid var(--border); border-radius: 14px; background: rgba(12,18,40,0.6); }
     .msg { display:flex; margin: 10px 0; }
     .msg.user { justify-content: flex-end; }
     .bubble {
@@ -44,9 +43,7 @@
     }
     .msg.user .bubble { background: rgba(110,168,254,0.18); }
     .msg.assistant .bubble { background: rgba(255,255,255,0.06); }
-    .meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
-    /* Input */
     .inputRow { display:flex; gap:10px; margin-top: 10px; }
     input[type="text"]{
       flex:1;
@@ -60,7 +57,6 @@
     }
     input[type="text"]:focus { border-color: rgba(110,168,254,0.7); box-shadow: 0 0 0 3px rgba(110,168,254,0.15); }
 
-    /* Tables & plot */
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align:left; padding: 8px 8px; border-bottom: 1px solid rgba(37,48,85,0.75); vertical-align: top; }
     th { font-size: 12px; color: var(--muted); font-weight: 600; }
@@ -77,29 +73,14 @@
     <div class="hero">
       <div>
         <h1>AquaCrop Agent Chat Demo</h1>
-        <p class="subtitle">Chat-style demo (frontend memory, backend stateless): messages → backend → reply + result cards.</p>
+        <p class="subtitle">Chat-style demo (frontend memory; backend stateless). Ask for a location and optional dates.</p>
       </div>
       <div class="badge">Backend: <code id="backendTag"></code></div>
     </div>
 
     <div class="grid">
-      <!-- Left: Chat -->
       <div class="card">
         <h2>Chat</h2>
-
-        <div class="box" style="margin:10px 0 10px 0;">
-          <b>Rules for this demo (always visible)</b>
-          <ul style="margin:8px 0 0 18px; line-height:1.45;">
-            <li><b>Crop</b>: corn (maize) only.</li>
-            <li><b>Location</b>: 5-digit county GEOID, or county + state, or latitude/longitude.</li>
-            <li><b>Planting date</b>: optional; default county planting date is used if omitted.</li>
-            <li><b>Year</b>: optional; dates without a year assume the current year unless you specify a year.</li>
-            <li><b>Current date</b>: start of the next 14-day irrigation window. For a past year, provide a current date in that year.</li>
-            <li><b>Forecast limit</b>: current date cannot be in the future (needs the next 14 days).</li>
-            <li><b>MAD</b> (Maximum Allowable Depletion, %): optional; default 50%.</li>
-          </ul>
-        </div>
-
         <div id="chat" class="chat"></div>
 
         <div class="inputRow">
@@ -114,16 +95,10 @@
         </div>
 
         <div class="hint">
-          Tips:
-          <ul>
-            <li>Try: <code>Mitchell County, GA, irrigated, planted Jan 5 2026</code></li>
-            <li>Past year example: <code>GEOID 13205 year 2025 current date March 1 2025</code></li>
-            <li>If the agent asks a clarification, just reply in the chat.</li>
-          </ul>
+          Example: <code>I want to simulate corn in Mitchell County</code>
         </div>
       </div>
 
-      <!-- Right: Result cards -->
       <div class="card">
         <h2>Result</h2>
 
@@ -148,7 +123,7 @@
 
     <div class="hint" style="margin-top:14px;">
       If you see a CORS error, the backend must allow origin <code>https://shqwu.github.io</code>.
-      This chat stores messages in your browser (localStorage) so refresh won’t lose context.
+      This chat stores messages in your browser (localStorage), so refresh won’t lose context.
     </div>
   </div>
 
@@ -171,7 +146,20 @@
     const rawJson = document.getElementById("rawJson");
     const errBox = document.getElementById("errBox");
 
-    const STORAGE_KEY = "aquacrop_agent_messages_v1";
+    const STORAGE_KEY = "aquacrop_agent_messages_chat_v2";
+
+    // Starter assistant message (your requested content, polished English)
+    const STARTER_ASSISTANT = [
+      "Hi! I can help you simulate irrigation demand from a **current date** to the next **14 days** (corn/maize only).",
+      "",
+      "To get started, please tell me your **location** — either a US county name (e.g., “Mitchell County, GA”) or **latitude/longitude**.",
+      "",
+      "If you can also provide **planting date** and **maturity date**, that’s ideal. If not, I will use default county planting/maturity dates.",
+      "**Note:** the planting date must not be later than the current date.",
+      "",
+      "If you don’t specify a current date, I will use the **local date at your simulation location** (based on timezone).",
+      "You can also provide **Maximum Allowable Depletion (MAD, %)** — default is **50%**."
+    ].join("\n");
 
     let messages = [];
 
@@ -244,9 +232,8 @@
       const text = inputEl.value.trim();
       if (!text) return;
 
-      // Push user message and clear input (ChatGPT-like)
       messages.push({ role: "user", content: text });
-      inputEl.value = "";
+      inputEl.value = ""; // <-- auto-clear
       saveMessages();
       renderMessages();
       clearResultCards();
@@ -255,7 +242,6 @@
       setPill("ask", "running");
       statusText.textContent = "Waking backend (if needed)…";
       await wakeBackend();
-
       statusText.textContent = "Sending… (Render may cold-start)";
 
       try {
@@ -276,24 +262,20 @@
           return;
         }
 
-        // Always show raw JSON (helpful debugging)
         rawWrap.style.display = "block";
         rawJson.textContent = JSON.stringify(data, null, 2);
 
-        // Error
         if (!resp.ok || data.status === "error"){
           const msg = data.error ? data.error : `HTTP ${resp.status}`;
           errBox.style.display = "block";
           errBox.innerHTML = "<b>Error</b><br/><br/>" + msg;
           setPill("err", "error");
           statusText.textContent = "Error from backend.";
-          // Also push assistant error message
           messages.push({ role: "assistant", content: "Sorry — I hit an error:\n" + msg });
           saveMessages(); renderMessages();
           return;
         }
 
-        // Append assistant message (always)
         if (data.assistant_message){
           messages.push({ role: "assistant", content: data.assistant_message });
         } else if (data.status === "need_more_info" && data.question){
@@ -301,10 +283,10 @@
         } else if (data.status === "ok"){
           messages.push({ role: "assistant", content: "Done. See results on the right." });
         }
+
         saveMessages();
         renderMessages();
 
-        // Status pill
         if (data.status === "need_more_info"){
           setPill("ask", "need_more_info");
           statusText.textContent = "Waiting for your reply…";
@@ -313,7 +295,6 @@
           statusText.textContent = "Done.";
         }
 
-        // Show result cards if OK
         if (data.status === "ok"){
           if (Array.isArray(data.summary_table) && data.summary_table.length > 0){
             summaryWrap.style.display = "block";
@@ -346,23 +327,18 @@
     });
 
     clearBtn.addEventListener("click", () => {
-      messages = [];
+      messages = [{ role: "assistant", content: STARTER_ASSISTANT }];
       saveMessages();
       renderMessages();
       clearResultCards();
       pill.style.display = "none";
       statusText.textContent = "Cleared.";
-      // add a starter assistant message
-      messages.push({ role: "assistant", content: "Hi! Tell me what you want to simulate (corn/maize only). Provide a location (GEOID, county+state, or lat/lon)." });
-      saveMessages(); renderMessages();
     });
 
     // init
     loadMessages();
     if (!messages || messages.length === 0){
-      messages = [
-        { role: "assistant", content: "Hi! Tell me what you want to simulate (corn/maize only). Provide a location (GEOID, county+state, or lat/lon)." }
-      ];
+      messages = [{ role: "assistant", content: STARTER_ASSISTANT }];
       saveMessages();
     }
     renderMessages();
