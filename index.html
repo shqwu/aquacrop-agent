@@ -3,41 +3,72 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>AquaCrop Agent Demo</title>
+  <title>AquaCrop Agent Chat Demo</title>
   <style>
     :root { --bg:#0b1020; --card:#121a33; --text:#e8ecff; --muted:#aab3d6; --border:#253055; --accent:#6ea8fe; }
     body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background: linear-gradient(180deg,#070b16,#0b1020); color: var(--text); }
-    .wrap { max-width: 980px; margin: 32px auto; padding: 0 16px; }
+    .wrap { max-width: 980px; margin: 28px auto; padding: 0 16px; }
     .hero { display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
-    h1 { margin:0 0 6px 0; font-size: 28px; letter-spacing: 0.2px; }
+    h1 { margin:0 0 6px 0; font-size: 26px; letter-spacing: 0.2px; }
     .subtitle { margin:0; color: var(--muted); line-height: 1.4; }
     .badge { display:inline-block; padding:6px 10px; border:1px solid var(--border); border-radius:999px; color: var(--muted); font-size: 12px; }
-    .grid { display:grid; grid-template-columns: 1fr; gap: 14px; margin-top: 18px; }
+    .grid { display:grid; grid-template-columns: 1fr; gap: 14px; margin-top: 16px; }
     @media (min-width: 900px){ .grid { grid-template-columns: 1.1fr 0.9fr; } }
     .card { background: rgba(18,26,51,0.92); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
     .card h2 { margin:0 0 10px 0; font-size: 16px; color: #d9e1ff; }
-    textarea { width: 100%; height: 150px; resize: vertical; border-radius: 12px; border: 1px solid var(--border); background: #0e1530; color: var(--text); padding: 12px; font-size: 14px; line-height: 1.35; outline: none; }
-    textarea:focus { border-color: rgba(110,168,254,0.7); box-shadow: 0 0 0 3px rgba(110,168,254,0.15); }
-    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+    .box { border: 1px dashed rgba(170,179,214,0.35); border-radius: 12px; padding: 10px; color: var(--muted); background: rgba(10,15,35,0.5); }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
+    .status { color: var(--muted); font-size: 13px; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     button { cursor:pointer; border:0; border-radius: 12px; padding: 10px 14px; font-weight: 600; background: var(--accent); color: #081027; }
     button:disabled { opacity: 0.6; cursor:not-allowed; }
     .smallbtn { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-    .status { color: var(--muted); font-size: 13px; }
     .pill { display:inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
     .pill.ok { background: rgba(77, 242, 167, 0.08); color: #7ff2c8; }
     .pill.ask { background: rgba(255, 208, 115, 0.08); color: #ffd073; }
     .pill.err { background: rgba(255, 120, 120, 0.08); color: #ff9a9a; }
-    .box { border: 1px dashed rgba(170,179,214,0.35); border-radius: 12px; padding: 10px; color: var(--muted); background: rgba(10,15,35,0.5); }
+
+    /* Chat */
+    .chat { height: 520px; overflow:auto; padding: 10px; border: 1px solid var(--border); border-radius: 14px; background: rgba(12,18,40,0.6); }
+    .msg { display:flex; margin: 10px 0; }
+    .msg.user { justify-content: flex-end; }
+    .bubble {
+      max-width: 78%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(37,48,85,0.75);
+      line-height: 1.35;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg.user .bubble { background: rgba(110,168,254,0.18); }
+    .msg.assistant .bubble { background: rgba(255,255,255,0.06); }
+    .meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* Input */
+    .inputRow { display:flex; gap:10px; margin-top: 10px; }
+    input[type="text"]{
+      flex:1;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0e1530;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: rgba(110,168,254,0.7); box-shadow: 0 0 0 3px rgba(110,168,254,0.15); }
+
+    /* Tables & plot */
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align:left; padding: 8px 8px; border-bottom: 1px solid rgba(37,48,85,0.75); vertical-align: top; }
     th { font-size: 12px; color: var(--muted); font-weight: 600; }
     td { font-size: 13px; }
-    code { background: rgba(110,168,254,0.12); padding: 2px 6px; border-radius: 8px; }
+    img { width: 100%; border-radius: 14px; border: 1px solid var(--border); background: #0c1228; }
     details { margin-top: 10px; }
     pre { white-space: pre-wrap; word-break: break-word; background: #0c1228; border: 1px solid var(--border); border-radius: 12px; padding: 10px; overflow:auto; max-height: 340px; color: #d6dcff; }
-    img { width: 100%; border-radius: 14px; border: 1px solid var(--border); background: #0c1228; }
-    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
-    .footer { margin: 18px 0 40px 0; color: var(--muted); font-size: 12px; }
+    code { background: rgba(110,168,254,0.12); padding: 2px 6px; border-radius: 8px; }
   </style>
 </head>
 
@@ -45,63 +76,56 @@
   <div class="wrap">
     <div class="hero">
       <div>
-        <h1>AquaCrop Agent Demo</h1>
-        <p class="subtitle">
-          Prompt → FastAPI backend → AquaCrop run → JSON + summary table + irrigation plot.
-        </p>
+        <h1>AquaCrop Agent Chat Demo</h1>
+        <p class="subtitle">Chat-style demo (frontend memory, backend stateless): messages → backend → reply + result cards.</p>
       </div>
       <div class="badge">Backend: <code id="backendTag"></code></div>
     </div>
 
     <div class="grid">
-      <!-- Left -->
+      <!-- Left: Chat -->
       <div class="card">
-        <h2>1) Prompt</h2>
+        <h2>Chat</h2>
 
-        <!-- Always-visible rules -->
         <div class="box" style="margin:10px 0 10px 0;">
           <b>Rules for this demo (always visible)</b>
           <ul style="margin:8px 0 0 18px; line-height:1.45;">
             <li><b>Crop</b>: corn (maize) only.</li>
             <li><b>Location</b>: 5-digit county GEOID, or county + state, or latitude/longitude.</li>
             <li><b>Planting date</b>: optional; default county planting date is used if omitted.</li>
-            <li><b>Year</b>: optional; if you provide dates without a year, the demo assumes the current year unless you specify a year.</li>
-            <li><b>Current date</b>: the start date for the <b>next 14-day irrigation demand window</b>. If omitted, it defaults to the local date at the simulation location (only for the current year). For a past year, you must provide a current date in that year.</li>
-            <li><b>Forecast limit</b>: current date cannot be in the future (we need the next 14 days from that date). Past dates are simulated using historical weather (archive).</li>
-            <li><b>MAD</b> (Maximum Allowable Depletion, %): optional; default is 50%.</li>
+            <li><b>Year</b>: optional; dates without a year assume the current year unless you specify a year.</li>
+            <li><b>Current date</b>: start of the next 14-day irrigation window. For a past year, provide a current date in that year.</li>
+            <li><b>Forecast limit</b>: current date cannot be in the future (needs the next 14 days).</li>
+            <li><b>MAD</b> (Maximum Allowable Depletion, %): optional; default 50%.</li>
           </ul>
         </div>
 
-        <textarea id="prompt"></textarea>
+        <div id="chat" class="chat"></div>
 
-        <div class="row">
-          <button id="runBtn">Run</button>
-          <button id="resetBtn" class="smallbtn">Reset</button>
+        <div class="inputRow">
+          <input id="input" type="text" placeholder="Type a message… (Enter to send)" />
+          <button id="sendBtn">Send</button>
+          <button id="clearBtn" class="smallbtn">Clear</button>
+        </div>
+
+        <div class="row" style="margin-top:8px;">
           <span class="status" id="statusText">Ready.</span>
           <span class="pill" id="pill" style="display:none;"></span>
         </div>
 
         <div class="hint">
-          Example prompts:
+          Tips:
           <ul>
-            <li><code>Run maize in Mitchell County, GA, planted January 5 2026, irrigated</code></li>
-            <li><code>GEOID 13205 rainfed, year 2025, current date March 1 2025</code></li>
-            <li><code>31.213 -84.216 irrigated, planting Jan 5 2026, MAD 45%</code></li>
+            <li>Try: <code>Mitchell County, GA, irrigated, planted Jan 5 2026</code></li>
+            <li>Past year example: <code>GEOID 13205 year 2025 current date March 1 2025</code></li>
+            <li>If the agent asks a clarification, just reply in the chat.</li>
           </ul>
-        </div>
-
-        <div class="box" id="askBox" style="display:none;">
-          <b>Need more info:</b>
-          <div id="askText" style="margin-top:6px;"></div>
-          <div class="hint">
-            Tip: the backend is stateless. If it asks a clarification, paste a follow-up prompt with a clear answer (e.g., “current date 2025-03-01”).
-          </div>
         </div>
       </div>
 
-      <!-- Right -->
+      <!-- Right: Result cards -->
       <div class="card">
-        <h2>2) Output</h2>
+        <h2>Result</h2>
 
         <div id="summaryWrap" style="display:none;">
           <h2 style="margin-top:2px;">Summary</h2>
@@ -113,12 +137,6 @@
           <img id="plotImg" alt="Irrigation plot" />
         </div>
 
-        <div id="seriesWrap" style="display:none; margin-top:12px;">
-          <h2 style="margin-top:0;">Irrigation series preview</h2>
-          <div id="seriesTable"></div>
-          <div class="hint">Showing first 20 rows.</div>
-        </div>
-
         <details id="rawWrap" style="display:none;">
           <summary style="cursor:pointer; color: var(--muted);">Raw JSON</summary>
           <pre id="rawJson"></pre>
@@ -128,8 +146,9 @@
       </div>
     </div>
 
-    <div class="footer">
+    <div class="hint" style="margin-top:14px;">
       If you see a CORS error, the backend must allow origin <code>https://shqwu.github.io</code>.
+      This chat stores messages in your browser (localStorage) so refresh won’t lose context.
     </div>
   </div>
 
@@ -137,29 +156,24 @@
     const BACKEND_BASE = "https://aquacrop-backend-private.onrender.com";
     document.getElementById("backendTag").textContent = BACKEND_BASE;
 
-    const promptEl = document.getElementById("prompt");
-    const runBtn = document.getElementById("runBtn");
-    const resetBtn = document.getElementById("resetBtn");
+    const chatEl = document.getElementById("chat");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("sendBtn");
+    const clearBtn = document.getElementById("clearBtn");
     const statusText = document.getElementById("statusText");
     const pill = document.getElementById("pill");
 
-    const askBox = document.getElementById("askBox");
-    const askText = document.getElementById("askText");
-    const errBox = document.getElementById("errBox");
-
     const summaryWrap = document.getElementById("summaryWrap");
     const summaryTable = document.getElementById("summaryTable");
-
     const plotWrap = document.getElementById("plotWrap");
     const plotImg = document.getElementById("plotImg");
-
-    const seriesWrap = document.getElementById("seriesWrap");
-    const seriesTable = document.getElementById("seriesTable");
-
     const rawWrap = document.getElementById("rawWrap");
     const rawJson = document.getElementById("rawJson");
+    const errBox = document.getElementById("errBox");
 
-    promptEl.value = "Run maize in Mitchell County, GA, planted January 5 2026, irrigated";
+    const STORAGE_KEY = "aquacrop_agent_messages_v1";
+
+    let messages = [];
 
     function setPill(type, text){
       pill.style.display = "inline-block";
@@ -167,17 +181,39 @@
       pill.textContent = text;
     }
 
-    function clearOutputs(){
-      askBox.style.display = "none";
-      errBox.style.display = "none";
+    function clearResultCards(){
       summaryWrap.style.display = "none";
       plotWrap.style.display = "none";
-      seriesWrap.style.display = "none";
       rawWrap.style.display = "none";
+      errBox.style.display = "none";
       summaryTable.innerHTML = "";
-      seriesTable.innerHTML = "";
-      rawJson.textContent = "";
       plotImg.src = "";
+      rawJson.textContent = "";
+    }
+
+    function saveMessages(){
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch (e) {}
+    }
+
+    function loadMessages(){
+      try {
+        const s = localStorage.getItem(STORAGE_KEY);
+        if (s) messages = JSON.parse(s);
+      } catch (e) { messages = []; }
+    }
+
+    function renderMessages(){
+      chatEl.innerHTML = "";
+      for (const m of messages){
+        const row = document.createElement("div");
+        row.className = "msg " + (m.role === "user" ? "user" : "assistant");
+        const bub = document.createElement("div");
+        bub.className = "bubble";
+        bub.textContent = m.content || "";
+        row.appendChild(bub);
+        chatEl.appendChild(row);
+      }
+      chatEl.scrollTop = chatEl.scrollHeight;
     }
 
     function buildKeyValueTable(rows){
@@ -200,104 +236,93 @@
       return t;
     }
 
-    function buildSeriesTable(rows){
-      const t = document.createElement("table");
-      const thead = document.createElement("thead");
-      thead.innerHTML = "<tr><th style='width:55%'>Date</th><th>Irrigation (mm)</th></tr>";
-      t.appendChild(thead);
-      const tbody = document.createElement("tbody");
-      rows.slice(0, 20).forEach(r => {
-        const tr = document.createElement("tr");
-        const td1 = document.createElement("td");
-        const td2 = document.createElement("td");
-        td1.textContent = r.date ?? "";
-        td2.textContent = (r.irrigation_mm ?? "").toString();
-        tr.appendChild(td1);
-        tr.appendChild(td2);
-        tbody.appendChild(tr);
-      });
-      t.appendChild(tbody);
-      return t;
-    }
-
     async function wakeBackend(){
       try { await fetch(`${BACKEND_BASE}/health`, { method: "GET" }); } catch (e) {}
     }
 
-    async function run(){
-      const prompt = promptEl.value.trim();
-      if (!prompt){
-        statusText.textContent = "Please enter a prompt.";
-        return;
-      }
+    async function send(){
+      const text = inputEl.value.trim();
+      if (!text) return;
 
-      clearOutputs();
-      runBtn.disabled = true;
-      statusText.textContent = "Waking backend (if needed)...";
+      // Push user message and clear input (ChatGPT-like)
+      messages.push({ role: "user", content: text });
+      inputEl.value = "";
+      saveMessages();
+      renderMessages();
+      clearResultCards();
+
+      sendBtn.disabled = true;
       setPill("ask", "running");
-
+      statusText.textContent = "Waking backend (if needed)…";
       await wakeBackend();
 
-      statusText.textContent = "Running... (Render may cold-start)";
-      const payload = { prompt };
+      statusText.textContent = "Sending… (Render may cold-start)";
 
       try {
         const resp = await fetch(`${BACKEND_BASE}/run`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ messages })
         });
 
-        const text = await resp.text();
+        const raw = await resp.text();
         let data = null;
-
-        try { data = JSON.parse(text); }
+        try { data = JSON.parse(raw); }
         catch (e) {
           errBox.style.display = "block";
-          errBox.innerHTML = "<b>Non-JSON response</b><br/><pre style='max-height:220px;'>" + text.replaceAll("<","&lt;") + "</pre>";
+          errBox.innerHTML = "<b>Non-JSON response</b><br/><pre style='max-height:220px;'>" + raw.replaceAll("<","&lt;") + "</pre>";
           setPill("err", "error");
           statusText.textContent = `HTTP ${resp.status}.`;
           return;
         }
 
+        // Always show raw JSON (helpful debugging)
         rawWrap.style.display = "block";
         rawJson.textContent = JSON.stringify(data, null, 2);
 
+        // Error
         if (!resp.ok || data.status === "error"){
-          errBox.style.display = "block";
           const msg = data.error ? data.error : `HTTP ${resp.status}`;
-          errBox.innerHTML = "<b>Error</b><br/><br/>" + msg +
-                             (data.traceback ? "<details style='margin-top:8px;'><summary>Traceback</summary><pre>" +
-                              data.traceback.replaceAll("<","&lt;") + "</pre></details>" : "");
+          errBox.style.display = "block";
+          errBox.innerHTML = "<b>Error</b><br/><br/>" + msg;
           setPill("err", "error");
           statusText.textContent = "Error from backend.";
+          // Also push assistant error message
+          messages.push({ role: "assistant", content: "Sorry — I hit an error:\n" + msg });
+          saveMessages(); renderMessages();
           return;
         }
 
+        // Append assistant message (always)
+        if (data.assistant_message){
+          messages.push({ role: "assistant", content: data.assistant_message });
+        } else if (data.status === "need_more_info" && data.question){
+          messages.push({ role: "assistant", content: data.question });
+        } else if (data.status === "ok"){
+          messages.push({ role: "assistant", content: "Done. See results on the right." });
+        }
+        saveMessages();
+        renderMessages();
+
+        // Status pill
         if (data.status === "need_more_info"){
-          askBox.style.display = "block";
-          askText.textContent = data.question || "I need more information.";
           setPill("ask", "need_more_info");
-          statusText.textContent = "Waiting for clarification.";
-          return;
+          statusText.textContent = "Waiting for your reply…";
+        } else {
+          setPill("ok", "ok");
+          statusText.textContent = "Done.";
         }
 
-        setPill("ok", "ok");
-        statusText.textContent = "Done.";
-
-        if (Array.isArray(data.summary_table) && data.summary_table.length > 0){
-          summaryWrap.style.display = "block";
-          summaryTable.appendChild(buildKeyValueTable(data.summary_table));
-        }
-
-        if (data.irrigation_plot_png_base64){
-          plotWrap.style.display = "block";
-          plotImg.src = "data:image/png;base64," + data.irrigation_plot_png_base64;
-        }
-
-        if (Array.isArray(data.irrigation_series) && data.irrigation_series.length > 0){
-          seriesWrap.style.display = "block";
-          seriesTable.appendChild(buildSeriesTable(data.irrigation_series));
+        // Show result cards if OK
+        if (data.status === "ok"){
+          if (Array.isArray(data.summary_table) && data.summary_table.length > 0){
+            summaryWrap.style.display = "block";
+            summaryTable.appendChild(buildKeyValueTable(data.summary_table));
+          }
+          if (data.irrigation_plot_png_base64){
+            plotWrap.style.display = "block";
+            plotImg.src = "data:image/png;base64," + data.irrigation_plot_png_base64;
+          }
         }
 
       } catch (e) {
@@ -305,18 +330,42 @@
         errBox.innerHTML = "<b>Request failed</b><br/><br/>" + (e?.message || String(e));
         setPill("err", "error");
         statusText.textContent = "Network/request error.";
+        messages.push({ role: "assistant", content: "Network/request error: " + (e?.message || String(e)) });
+        saveMessages(); renderMessages();
       } finally {
-        runBtn.disabled = false;
+        sendBtn.disabled = false;
       }
     }
 
-    runBtn.addEventListener("click", run);
-    resetBtn.addEventListener("click", () => {
-      promptEl.value = "Run maize in Mitchell County, GA, planted January 5 2026, irrigated";
-      clearOutputs();
-      statusText.textContent = "Ready.";
-      pill.style.display = "none";
+    sendBtn.addEventListener("click", send);
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter"){
+        e.preventDefault();
+        send();
+      }
     });
+
+    clearBtn.addEventListener("click", () => {
+      messages = [];
+      saveMessages();
+      renderMessages();
+      clearResultCards();
+      pill.style.display = "none";
+      statusText.textContent = "Cleared.";
+      // add a starter assistant message
+      messages.push({ role: "assistant", content: "Hi! Tell me what you want to simulate (corn/maize only). Provide a location (GEOID, county+state, or lat/lon)." });
+      saveMessages(); renderMessages();
+    });
+
+    // init
+    loadMessages();
+    if (!messages || messages.length === 0){
+      messages = [
+        { role: "assistant", content: "Hi! Tell me what you want to simulate (corn/maize only). Provide a location (GEOID, county+state, or lat/lon)." }
+      ];
+      saveMessages();
+    }
+    renderMessages();
   </script>
 </body>
 </html>
