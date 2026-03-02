@@ -3,68 +3,264 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>AquaCrop Agent Chat Demo</title>
-  <style>
-    :root { --bg:#0b1020; --card:#121a33; --text:#e8ecff; --muted:#aab3d6; --border:#253055; --accent:#6ea8fe; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background: linear-gradient(180deg,#070b16,#0b1020); color: var(--text); }
-    .wrap { max-width: 980px; margin: 28px auto; padding: 0 16px; }
-    .hero { display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
-    h1 { margin:0 0 6px 0; font-size: 26px; letter-spacing: 0.2px; }
-    .subtitle { margin:0; color: var(--muted); line-height: 1.4; }
-    .badge { display:inline-block; padding:6px 10px; border:1px solid var(--border); border-radius:999px; color: var(--muted); font-size: 12px; }
-    .grid { display:grid; grid-template-columns: 1fr; gap: 14px; margin-top: 16px; }
-    @media (min-width: 900px){ .grid { grid-template-columns: 1.1fr 0.9fr; } }
-    .card { background: rgba(18,26,51,0.92); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
-    .card h2 { margin:0 0 10px 0; font-size: 16px; color: #d9e1ff; }
-    .box { border: 1px dashed rgba(170,179,214,0.35); border-radius: 12px; padding: 10px; color: var(--muted); background: rgba(10,15,35,0.5); }
-    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
-    .status { color: var(--muted); font-size: 13px; }
-    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    button { cursor:pointer; border:0; border-radius: 12px; padding: 10px 14px; font-weight: 600; background: var(--accent); color: #081027; }
-    button:disabled { opacity: 0.6; cursor:not-allowed; }
-    .smallbtn { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-    .pill { display:inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
-    .pill.ok { background: rgba(77, 242, 167, 0.08); color: #7ff2c8; }
-    .pill.ask { background: rgba(255, 208, 115, 0.08); color: #ffd073; }
-    .pill.err { background: rgba(255, 120, 120, 0.08); color: #ff9a9a; }
+  <title>AquaCrop Agent Demo - Help you simulate future irrigation demand</title>
 
-    .chat { height: 560px; overflow:auto; padding: 10px; border: 1px solid var(--border); border-radius: 14px; background: rgba(12,18,40,0.6); }
-    .msg { display:flex; margin: 10px 0; }
-    .msg.user { justify-content: flex-end; }
-    .bubble {
+  <style>
+    :root{
+      --bg:#f6f9ff;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#475569;
+      --border:#dbe3f5;
+      --accent:#2563eb;   /* tech blue */
+      --accent2:#06b6d4;  /* cyan */
+      --shadow: 0 14px 40px rgba(15, 23, 42, 0.10);
+    }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: var(--text);
+      background:
+        radial-gradient(900px 500px at 15% 10%, rgba(6,182,212,0.18), transparent 60%),
+        radial-gradient(900px 500px at 85% 20%, rgba(37,99,235,0.18), transparent 55%),
+        linear-gradient(180deg, #f6f9ff, #eef5ff 55%, #f8fbff);
+    }
+
+    /* ===== Background photo (Unsplash) ===== */
+    body{
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before{
+      content:"";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+
+      background: url("./assets/bg.jpg") center/cover no-repeat;
+
+      opacity: 0.8;                     /* ✅ 更明显 */
+      filter: saturate(1.10) contrast(1.08) blur(0px);  /* ✅ 不模糊 */
+    }
+    body::after{
+      content:"";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+
+      background:
+        /* ✅ 白雾：保证可读性，但别太厚 */
+        linear-gradient(180deg, rgba(246,249,255,0.65), rgba(248,251,255,0.5)),
+        /* ✅ 轻 tech 光晕 */
+        radial-gradient(900px 500px at 15% 10%, rgba(6,182,212,0.12), transparent 60%),
+        radial-gradient(900px 500px at 85% 20%, rgba(37,99,235,0.12), transparent 55%);
+    }
+
+    .wrap{
+      max-width: 980px;
+      margin: 44px auto;
+      padding: 0 16px 60px;
+    }
+
+    .hero{
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    h1{
+      margin:0 0 6px 0;
+      font-size: 28px;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle{
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 780px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 16px;
+    }
+    @media (min-width: 900px){
+      .grid { grid-template-columns: 1.1fr 0.9fr; }
+    }
+
+    .card{
+      background: rgba(255,255,255,0.90);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .card h2{
+      margin:0 0 10px 0;
+      font-size: 16px;
+      color: #1e293b;
+    }
+
+    .box{
+      border: 1px dashed rgba(71,85,105,0.25);
+      border-radius: 12px;
+      padding: 10px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.65);
+    }
+
+    .hint{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.35;
+    }
+
+    .status{
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    /* ---- Chat area ---- */
+    .chat{
+      height: min(70vh, 780px);
+      min-height: 560px;
+      overflow:auto;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.72);
+    }
+
+    .msg{ display:flex; margin: 10px 0; }
+    .msg.user{ justify-content:flex-end; }
+
+    .bubble{
       max-width: 78%;
       padding: 10px 12px;
       border-radius: 14px;
-      border: 1px solid rgba(37,48,85,0.75);
+      border: 1px solid rgba(37, 99, 235, 0.14);
       line-height: 1.35;
       font-size: 14px;
       white-space: pre-wrap;
       word-break: break-word;
+      background: rgba(15, 23, 42, 0.04);
     }
-    .msg.user .bubble { background: rgba(110,168,254,0.18); }
-    .msg.assistant .bubble { background: rgba(255,255,255,0.06); }
+    .msg.user .bubble{
+      background: rgba(37,99,235,0.10);
+      border-color: rgba(37,99,235,0.22);
+    }
 
-    .inputRow { display:flex; gap:10px; margin-top: 10px; }
+    /* ---- Input row (bright tech) ---- */
+    .inputRow{
+      display:flex;
+      gap:10px;
+      margin-top: 10px;
+    }
+
     input[type="text"]{
       flex:1;
       border-radius: 12px;
       border: 1px solid var(--border);
-      background: #0e1530;
+      background: rgba(255,255,255,0.92);
       color: var(--text);
-      padding: 10px 12px;
+      padding: 11px 12px;
       font-size: 14px;
       outline: none;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
     }
-    input[type="text"]:focus { border-color: rgba(110,168,254,0.7); box-shadow: 0 0 0 3px rgba(110,168,254,0.15); }
+    input[type="text"]::placeholder{
+      color: rgba(71, 85, 105, 0.85);
+    }
+    input[type="text"]:focus{
+      border-color: rgba(37, 99, 235, 0.55);
+      box-shadow:
+        0 0 0 4px rgba(37, 99, 235, 0.12),
+        0 10px 24px rgba(15, 23, 42, 0.08);
+    }
 
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align:left; padding: 8px 8px; border-bottom: 1px solid rgba(37,48,85,0.75); vertical-align: top; }
-    th { font-size: 12px; color: var(--muted); font-weight: 600; }
-    td { font-size: 13px; }
-    img { width: 100%; border-radius: 14px; border: 1px solid var(--border); background: #0c1228; }
-    details { margin-top: 10px; }
-    pre { white-space: pre-wrap; word-break: break-word; background: #0c1228; border: 1px solid var(--border); border-radius: 12px; padding: 10px; overflow:auto; max-height: 340px; color: #d6dcff; }
-    code { background: rgba(110,168,254,0.12); padding: 2px 6px; border-radius: 8px; }
+    button{
+      cursor:pointer;
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #ffffff;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.20);
+    }
+    button:hover{ filter: brightness(1.02); }
+    button:disabled{ opacity: 0.6; cursor:not-allowed; box-shadow: none; }
+
+    .smallbtn{
+      background: rgba(255,255,255,0.9);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .pill{
+      display:inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,0.03);
+      color: var(--muted);
+    }
+    .pill.ok  { background: rgba(77, 242, 167, 0.10); color: #118a62; border-color: rgba(17,138,98,0.22); }
+    .pill.ask { background: rgba(255, 208, 115, 0.16); color: #8a5a00; border-color: rgba(138,90,0,0.22); }
+    .pill.err { background: rgba(255, 120, 120, 0.14); color: #9b1c1c; border-color: rgba(155,28,28,0.22); }
+
+    table{ width: 100%; border-collapse: collapse; }
+    th, td{
+      text-align:left;
+      padding: 8px 8px;
+      border-bottom: 1px solid rgba(219,227,245,0.9);
+      vertical-align: top;
+    }
+    th{ font-size: 12px; color: var(--muted); font-weight: 700; }
+    td{ font-size: 13px; }
+
+    img{
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.9);
+    }
+
+    details{ margin-top: 10px; }
+    pre{
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: rgba(255,255,255,0.75);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      overflow:auto;
+      max-height: 340px;
+      color: #0f172a;
+    }
+    code{
+      background: rgba(37,99,235,0.10);
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
   </style>
 </head>
 
@@ -72,10 +268,12 @@
   <div class="wrap">
     <div class="hero">
       <div>
-        <h1>AquaCrop Agent Chat Demo</h1>
-        <p class="subtitle">Chat-style demo (frontend memory; backend stateless). Ask for a location and optional dates.</p>
+        <h1>AquaCrop Agent Demo - Help you simulate future irrigation demand</h1>
+        <p class="subtitle">
+          This demo uses an independent Python implementation adapted from FAO’s AquaCrop scripts and documentation.
+          It is not an official FAO model or product, and is not endorsed by FAO.
+        </p>
       </div>
-      <div class="badge">Backend: <code id="backendTag"></code></div>
     </div>
 
     <div class="grid">
@@ -117,7 +315,7 @@
           <pre id="rawJson"></pre>
         </details>
 
-        <div id="errBox" class="box" style="display:none; border-style: solid; border-color: rgba(255,154,154,0.35); color:#ffb3b3;"></div>
+        <div id="errBox" class="box" style="display:none; border-style: solid; border-color: rgba(155,28,28,0.22); color:#9b1c1c;"></div>
       </div>
     </div>
 
@@ -125,11 +323,18 @@
       If you see a CORS error, the backend must allow origin <code>https://shqwu.github.io</code>.
       This chat stores messages in your browser (localStorage), so refresh won’t lose context.
     </div>
+
+    <div class="hint" style="margin-top:6px;">
+      Background photo: Frankie Lopez (Unsplash).
+    </div>
   </div>
 
   <script>
     const BACKEND_BASE = "https://aquacrop-backend-private.onrender.com";
-    document.getElementById("backendTag").textContent = BACKEND_BASE;
+
+    // Auto-disable backend calls on localhost to avoid hitting Render/LLM during local preview.
+    const IS_LOCAL = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    const ENABLE_BACKEND = !IS_LOCAL; // auto-enable on GitHub Pages, auto-disable locally
 
     const chatEl = document.getElementById("chat");
     const inputEl = document.getElementById("input");
@@ -148,7 +353,6 @@
 
     const STORAGE_KEY = "aquacrop_agent_messages_chat_v2";
 
-    // Starter assistant message (your requested content, polished English)
     const STARTER_ASSISTANT = [
       "Hi! I can help you simulate irrigation demand from a **current date** to the next **14 days** (corn/maize only).",
       "",
@@ -225,6 +429,7 @@
     }
 
     async function wakeBackend(){
+      if (!ENABLE_BACKEND) return;
       try { await fetch(`${BACKEND_BASE}/health`, { method: "GET" }); } catch (e) {}
     }
 
@@ -233,10 +438,23 @@
       if (!text) return;
 
       messages.push({ role: "user", content: text });
-      inputEl.value = ""; // <-- auto-clear
+      inputEl.value = "";
       saveMessages();
       renderMessages();
       clearResultCards();
+
+      // Local preview: do not call Render/LLM
+      if (!ENABLE_BACKEND){
+        setPill("ask", "local_preview");
+        statusText.textContent = "Local preview mode: backend calls are disabled.";
+        messages.push({
+          role: "assistant",
+          content: "Local preview mode: I’m not calling the backend (Render/LLM disabled). Deploy to GitHub Pages to run the model."
+        });
+        saveMessages();
+        renderMessages();
+        return;
+      }
 
       sendBtn.disabled = true;
       setPill("ask", "running");
@@ -342,6 +560,11 @@
       saveMessages();
     }
     renderMessages();
+
+    if (!ENABLE_BACKEND){
+      statusText.textContent = "Local preview mode: backend calls are disabled.";
+      setPill("ask", "local_preview");
+    }
   </script>
 </body>
 </html>
